@@ -31,7 +31,16 @@ async function sendRequest(url, options) {
 
 export function alertChannels(env) {
   const channels = [];
-  if (env.EMAIL && env.ALERT_EMAIL_FROM && env.ALERT_EMAIL_TO) {
+  if (env.RESEND_API_KEY && env.RESEND_FROM && env.ALERT_EMAIL_TO) {
+    channels.push(['email', (text, title = subject) => sendRequest('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({ from: env.RESEND_FROM, to: [env.ALERT_EMAIL_TO], subject: title, text }),
+    })]);
+  } else if (env.EMAIL && env.ALERT_EMAIL_FROM && env.ALERT_EMAIL_TO) {
     channels.push(['email', (text, title = subject) => env.EMAIL.send({
       from: env.ALERT_EMAIL_FROM, to: env.ALERT_EMAIL_TO, subject: title, text,
     })]);

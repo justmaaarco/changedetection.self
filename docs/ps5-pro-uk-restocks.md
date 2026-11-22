@@ -43,11 +43,14 @@ In the Cloudflare Worker, open **Settings → Variables and Secrets**. Choose **
 
 | Channel | Configuration |
 | --- | --- |
-| Email | Onboard a sender domain in Cloudflare Email Service and verify the recipient if required. Set `ALERT_EMAIL_FROM` and `ALERT_EMAIL_TO`. The Worker uses the `EMAIL` binding in `wrangler.toml` and requires no mailbox password. |
+| Email via Resend | Set `ALERT_EMAIL_TO`, `RESEND_FROM` (such as `PS5 Alerts <alerts@your-verified-domain.example>`) and `RESEND_API_KEY`. Use a **Sending access** key limited to the verified sender domain. Copy the key directly from Resend into your Worker secret. [Resend API key setup](https://resend.com/docs/dashboard/api-keys/introduction) |
+| Email via Cloudflare | Onboard a sender domain in Cloudflare Email Service and verify the recipient if required. Set `ALERT_EMAIL_FROM` and `ALERT_EMAIL_TO`. The Worker uses the `EMAIL` binding in `wrangler.toml` and requires no mailbox password. |
 | Telegram | Create a bot with BotFather and start a private chat with it. Set `TELEGRAM_BOT_TOKEN` and the destination `TELEGRAM_CHAT_ID`. |
 | SMS | Create a dedicated Twilio API key with message creation permission. Set `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET`, `TWILIO_FROM` and `ALERT_SMS_TO`. Use an SMS-capable sender and an international-format recipient. Twilio charges may apply. [Twilio API keys](https://www.twilio.com/docs/iam/api-keys/keys-in-console) |
 
 Once a channel is configured, add a **Text** variable named `ALERT_TEST` with a value such as `email:1`, `sms:1`, or `telegram:1`. The next check attempts one clearly labelled test for that channel, including the PS5 Pro product link. Check **Observability** for the provider result and confirm it arrived. Use a fresh identifier, such as `email:2`, to send another test. Standard SMS charges apply to tests.
+
+If you connect both email providers, the Worker uses Resend for email delivery. It sends one email per alert.
 
 If both the Worker and ChangeDetection are running, configure alert destinations in one place to avoid duplicate messages.
 

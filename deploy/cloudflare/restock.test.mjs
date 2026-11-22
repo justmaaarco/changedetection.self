@@ -81,6 +81,31 @@ test('includes the selected first-party account link in email and keeps the SMS 
   assert.equal(alertText([offer], 'argos'), messages.sms);
 });
 
+test('sends a test through Resend and keeps one email route when both senders are configured', async t => {
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 200 }));
+  const nativeSend = t.mock.fn();
+  const settings = {
+    RESEND_API_KEY: 'test-sending-key', RESEND_FROM: 'PS5 Alerts <alerts@example.com>',
+    ALERT_EMAIL_TO: 'reader@example.com', ALERT_EMAIL_FROM: 'native@example.com',
+    EMAIL: { send: nativeSend },
+  };
+  const channels = alertChannels(settings);
+  assert.deepEqual(channels.map(([name]) => name), ['email']);
+  const saved = new Map();
+  const storage = { get: key => saved.get(key), put: (key, value) => saved.set(key, value) };
+  assert.deepEqual(await testAlert(storage, 'email:resend-test', channels), { channel: 'email', status: 'accepted by provider' });
+  const [[url, options]] = fetchMock.mock.calls.map(call => call.arguments);
+  assert.equal(url, 'https://api.resend.com/emails');
+  assert.equal(options.headers.Authorization, 'Bearer test-sending-key');
+  assert.deepEqual(JSON.parse(options.body), {
+    from: settings.RESEND_FROM, to: [settings.ALERT_EMAIL_TO], subject: 'PS5 Pro alert test',
+    text: `PS5 Pro alert test. No restock detected by this test.\n${PLAYSTATION}`,
+  });
+  assert.equal(nativeSend.mock.callCount(), 0);
+  await alertChannels({ ...settings, RESEND_API_KEY: undefined })[0][1]('Native test');
+  assert.equal(nativeSend.mock.callCount(), 1);
+});
+
 test('uses a dedicated Twilio API key and the configured account and phone numbers', async t => {
   const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 201 }));
   const settings = {
