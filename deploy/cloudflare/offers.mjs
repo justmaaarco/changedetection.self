@@ -63,6 +63,7 @@ function retailerLink(href) {
   if (target.username || target.password) return null;
   host = target.host.replace(/^www\./, '');
   const path = target.pathname.replace(/\/$/, '');
+  if (host === 'ee.co.uk' && path === new URL(EE).pathname) return { retailer: 'EE Store', url: EE };
   if (Object.hasOwn(supplemental, host)) {
     const [retailer, url, suffix] = supplemental[host];
     return path.endsWith(suffix ?? new URL(url).pathname) ? { retailer, url } : null;
@@ -103,7 +104,8 @@ function readFeed(source, html) {
     const price = pricePence(primary ? cells.price : cells[2]);
     if (!destination || price === null) continue;
     const host = new URL(destination.url).host.replace(/^www\./, '');
-    if (primary === Object.hasOwn(supplemental, host)) continue;
+    const isSupplemental = Object.hasOwn(supplemental, host) || destination.url === EE;
+    if (primary === isSupplemental) continue;
     const status = stockStatus(statusMarkup);
     const old = offers.get(destination.url);
     if (old?.status === 'in stock' && (status !== 'in stock' || old.price <= price)) continue;

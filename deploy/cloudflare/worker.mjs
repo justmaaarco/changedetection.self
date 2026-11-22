@@ -39,7 +39,11 @@ export class RestockMonitor extends DurableObject {
 
   async #checkOnce() {
     const results = await Promise.all(sources.map(checkSource));
-    const offers = results.flatMap(result => result.offers);
+    // The direct EE page takes priority when available. The supplemental
+    // feed covers the same product when EE declines the Worker request.
+    const offers = [...new Map(results.flatMap(result =>
+      result.offers.map(offer => [offer.url, offer])
+    )).values()];
     const channels = alertChannels(this.env);
     const alerts = await notifyRestocks(this.ctx.storage, offers, channels);
     return {

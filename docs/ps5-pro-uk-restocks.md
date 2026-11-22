@@ -24,7 +24,7 @@ Open **Groups**, edit **PS5 Pro UK restocks**, then open **Notifications**. Add 
 
 ## Run stock checks on Cloudflare
 
-The Worker runs the stock checks every minute with persistent alert state. Alerts are sent as soon as a check finds a qualifying offer and a notification channel is connected. Retailer and feed updates determine when stock becomes visible. There is no public HTTP route.
+The Worker runs the stock checks every minute with persistent alert state. It uses the supplemental feed for EE if the product page is unavailable. Alerts are sent as soon as a check finds a qualifying offer and a notification channel is connected. Retailer and feed updates determine when stock becomes visible. There is no public HTTP route.
 
 From the repository root, deploy to your Cloudflare account with Wrangler.
 

@@ -22,6 +22,9 @@ test('recognizes additional retailers and uses the direct EE listing', () => {
   const row = `<tr><td>Box</td><td>Sony PlayStation 5 Pro Console</td><td>£609.99</td>
     <td></td><td><a href="${tracked}">In Stock</a></td></tr>`;
   assert.deepEqual(readOffers(SUPPLEMENT, row), [{ retailer: 'Box', url: box, price: 60999, status: 'in stock' }]);
+  assert.deepEqual(readOffers(SUPPLEMENT, row.replace(tracked, EE)), [
+    { retailer: 'EE Store', url: EE, price: 60999, status: 'in stock' },
+  ]);
   const structured = JSON.stringify({
     '@type': 'Product', mpn: '1000050725',
     offers: { url: EE, priceCurrency: 'GBP', price: '789.99', availability: 'https://schema.org/OutOfStock' },
