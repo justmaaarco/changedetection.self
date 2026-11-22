@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { alertChannels } from './alerts.mjs';
+import { alertChannels, testAlert } from './alerts.mjs';
 import { notifyRestocks } from './restock.mjs';
 import { EE, PRIMARY, SUPPLEMENT, readOffers } from './offers.mjs';
 
@@ -45,12 +45,14 @@ export class RestockMonitor extends DurableObject {
       result.offers.map(offer => [offer.url, offer])
     )).values()];
     const channels = alertChannels(this.env);
-    const alerts = await notifyRestocks(this.ctx.storage, offers, channels);
+    const alerts = await notifyRestocks(this.ctx.storage, offers, channels, this.env.SIGN_IN_SHORTCUTS);
+    const test = await testAlert(this.ctx.storage, this.env.ALERT_TEST, channels);
     return {
       listings: offers.length,
       sources: Object.fromEntries(results.map(({ name, offers, error }) => [name, error ?? offers.length])),
       channels: channels.map(([name]) => name),
       ...alerts,
+      ...(test && { test }),
     };
   }
 }

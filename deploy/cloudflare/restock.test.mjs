@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { EE, PRIMARY, SUPPLEMENT, readOffers } from './offers.mjs';
+import { EE, PLAYSTATION, PRIMARY, SUPPLEMENT, readOffers } from './offers.mjs';
 import { notifyRestocks } from './restock.mjs';
-import { alertChannels } from './alerts.mjs';
+import { alertChannels, alertText, testAlert } from './alerts.mjs';
 
 test('uses the exact product link and excludes refurbished and bundled offers', () => {
   const product = 'https://direct.playstation.com/en-gb/buy-consoles/playstation5-pro-console-2-tb';
@@ -64,4 +64,53 @@ test('only uses completed delivery configurations', () => {
     TWILIO_ACCOUNT_SID: 'fixture', TWILIO_AUTH_TOKEN: 'fixture',
     TWILIO_FROM: '+12025550111', ALERT_SMS_TO: '+12025550110',
   }).map(([channel]) => channel), ['email', 'telegram', 'sms']);
+});
+
+test('includes the selected first-party account link in email and keeps the SMS short', async () => {
+  const offer = { retailer: 'PlayStation Direct', price: 78999, status: 'in stock', url: PLAYSTATION };
+  const messages = {};
+  const channels = [
+    ['email', async text => { messages.email = text; }],
+    ['sms', async text => { messages.sms = text; }],
+  ];
+  const saved = new Map();
+  await notifyRestocks({ get: key => saved.get(key), put: (key, value) => saved.set(key, value) },
+    [offer], channels, 'argos, PlayStation, https://example.com');
+  assert.ok(messages.email.endsWith('Retailer account: https://www.playstation.com/acct/management'));
+  assert.ok(messages.sms.endsWith(PLAYSTATION));
+  assert.equal(alertText([offer], 'argos'), messages.sms);
+});
+
+test('uses a dedicated Twilio API key and the configured account and phone numbers', async t => {
+  const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 201 }));
+  const settings = {
+    TWILIO_ACCOUNT_SID: 'ACfixture', TWILIO_FROM: '+12025550110', ALERT_SMS_TO: '+12025550111',
+    TWILIO_API_KEY_SID: 'SKfixture', TWILIO_AUTH_TOKEN: 'legacy-fixture',
+  };
+  assert.deepEqual(alertChannels(settings), []);
+  const [[name, send]] = alertChannels({ ...settings, TWILIO_API_KEY_SECRET: 'new-fixture' });
+  assert.equal(name, 'sms');
+  await send('Restock alert');
+  const [[url, options]] = fetchMock.mock.calls.map(call => call.arguments);
+  assert.equal(url, 'https://api.twilio.com/2010-04-01/Accounts/ACfixture/Messages.json');
+  assert.equal(options.headers.Authorization, `Basic ${btoa('SKfixture:new-fixture')}`);
+  assert.equal(options.body.get('To'), '+12025550111');
+});
+
+test('a private test request tries only the selected channel once', async () => {
+  const saved = new Map();
+  const storage = { get: key => saved.get(key), put: (key, value) => saved.set(key, value) };
+  const messages = [];
+  const channels = [
+    ['email', async (text, title) => messages.push({ text, title })],
+    ['sms', async () => { throw new Error('Provider or network error'); }],
+  ];
+  assert.deepEqual(await testAlert(storage, 'telegram:first', channels), { channel: 'telegram', status: 'not configured' });
+  assert.deepEqual(await testAlert(storage, 'email:first', channels), { channel: 'email', status: 'accepted by provider' });
+  assert.equal(await testAlert(storage, 'email:first', channels), undefined);
+  assert.deepEqual(await testAlert(storage, 'sms:first', channels), { channel: 'sms', status: 'delivery failed' });
+  assert.equal(await testAlert(storage, 'sms:first', channels), undefined);
+  assert.deepEqual(messages, [{
+    title: 'PS5 Pro alert test', text: `PS5 Pro alert test. No restock detected by this test.\n${PLAYSTATION}`,
+  }]);
 });

@@ -4,7 +4,7 @@ export const CAP = 78_999;
 export const PRIMARY = 'https://www.stockcheckers.co.uk/sony/playstation/ps5/ps5-pro-console.php';
 export const SUPPLEMENT = 'https://stock-checker.com/products/gaming/ps5-pro';
 export const EE = 'https://ee.co.uk/products/ps5-pro-console-b-chassis';
-const PLAYSTATION = 'https://www.playstation.com/en-gb/ps5/ps5-pro/buy-now/?productCode=1000050928-GB';
+export const PLAYSTATION = 'https://www.playstation.com/en-gb/ps5/ps5-pro/buy-now/?productCode=1000050928-GB';
 
 const primaryRetailers = new Map(Object.entries({
   'ao.com': 'AO', 'amazon.co.uk': 'Amazon', 'currys.co.uk': 'Currys',

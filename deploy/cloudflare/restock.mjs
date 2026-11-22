@@ -1,7 +1,7 @@
 import { CAP } from './offers.mjs';
 import { alertText } from './alerts.mjs';
 
-export async function notifyRestocks(storage, offers, channels) {
+export async function notifyRestocks(storage, offers, channels, signInShortcuts) {
   const delivered = await storage.get('delivered') ?? {};
   const eligible = [];
   for (const offer of offers) {
@@ -22,7 +22,8 @@ export async function notifyRestocks(storage, offers, channels) {
     const pending = eligible.filter(({ url }) => !delivered[url]?.includes(channel));
     if (!pending.length) continue;
     try {
-      await send(alertText(pending));
+      // Keep SMS to the stock and product link. Extra URLs can add paid segments.
+      await send(alertText(pending, channel === 'sms' ? '' : signInShortcuts));
     } catch {
       failed.push(channel);
       continue;
