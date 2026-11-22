@@ -22,6 +22,7 @@ SYSTEM_MANAGED_NON_SPEC_FIELDS = frozenset({
     'last_check_status',           # Set by processors
     'last_filter_config_hash',     # text_json_diff internal skip-cache
     'restock',                     # Set by restock processor - @IMPORTANT-TODO: core shouldn't know processor keys, see store update_watch()
+    'processor_state_ps5_restock', # Stock eligibility and latest offers owned by the PS5 watch
     '_llm_result',                 # LLM runtime — populated by evaluator
     '_llm_intent',
     '_llm_change_summary',
