@@ -15,7 +15,7 @@ from .offers import DIRECT_PRODUCTS, SOURCE, SUPPLEMENT
 TAG = 'PS5 Pro UK restocks'
 WATCHES = {
     SOURCE: ('PS5 Pro · UK retailers', ''),
-    SUPPLEMENT: ('PS5 Pro · Argos, John Lewis and Smyths', ''),
+    SUPPLEMENT: ('PS5 Pro · Additional UK retailers', ''),
     **{url: (f'PS5 Pro · {retailer}', url) for url, (retailer, _, _) in DIRECT_PRODUCTS.items()},
 }
 

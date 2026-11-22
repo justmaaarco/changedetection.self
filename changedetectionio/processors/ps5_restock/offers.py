@@ -4,6 +4,7 @@ from html import unescape
 import json
 import math
 import re
+from pathlib import Path
 from typing import NamedTuple, Optional
 from urllib.parse import parse_qs, unquote, urlsplit, urlunsplit
 
@@ -27,18 +28,11 @@ RETAILERS = {
     "thegamecollection.net": "The Game Collection",
     "very.co.uk": "Very",
 }
-# Use the product IDs to recognise listings even if their readable slugs change.
 EXTRA_RETAILERS = {
-    "argos.co.uk": ("Argos", "/product/7797426", "https://www.argos.co.uk/product/7797426"),
-    "smythstoys.com": (
-        "Smyths", "/p/244166",
-        "https://www.smythstoys.com/uk/en-gb/gaming-and-tech/playstation-5/playstation-5-consoles/"
-        "playstation-5-pro-console-2tb-digital-edition-slim/p/244166",
-    ),
-    "johnlewis.com": (
-        "John Lewis", "/p114409149",
-        "https://www.johnlewis.com/playstation-5-pro-console-with-dualsense-controller/p114409149",
-    ),
+    host: (retailer, suffix[0] if suffix else urlsplit(url).path, url)
+    for host, (retailer, url, *suffix) in json.loads(
+        Path(__file__).with_name("supplement_listings.json").read_text(encoding="utf-8")
+    ).items()
 }
 AFFILIATE_QUERY = {
     "awin1.com": "ued", "go.skimresources.com": "url", "jdoqocy.com": "url", "redirect.viglink.com": "out",
@@ -201,7 +195,7 @@ def read_supplement(html):
         status = stock_status(link[2]) if price is not None else "Unknown"
         offers[url] = Offer(retailer, price, status, url)
     if all(offer.price_pence is None for offer in offers.values()):
-        raise ValueError("Could not read the Argos, Smyths and John Lewis listings.")
+        raise ValueError("Could not read the supplemental UK PS5 Pro listings.")
     return tuple(offers.values())
 
 
