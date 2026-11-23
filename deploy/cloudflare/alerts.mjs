@@ -20,13 +20,19 @@ export function alertText(offers, signInShortcuts) {
   }).join('\n\n');
 }
 
-async function sendRequest(url, options) {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(10_000), redirect: 'error' });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`Notification returned HTTP ${response.status}`);
+class NotificationHttpError extends Error {
+  constructor(status) {
+    super(`Notification returned HTTP ${status}`);
+    this.status = status;
   }
-  await response.body?.cancel();
+}
+
+async function sendRequest(url, options) {
+  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(10_000), redirect: 'manual' });
+  await response.body?.cancel().catch(() => {});
+  if (!response.ok) {
+    throw new NotificationHttpError(response.status);
+  }
 }
 
 export function alertChannels(env) {
@@ -36,9 +42,10 @@ export function alertChannels(env) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'User-Agent': 'PS5 Restock Tracker',
+        Authorization: `Bearer ${env.RESEND_API_KEY.trim()}`,
       },
-      body: JSON.stringify({ from: env.RESEND_FROM, to: [env.ALERT_EMAIL_TO], subject: title, text }),
+      body: JSON.stringify({ from: env.RESEND_FROM.trim(), to: [env.ALERT_EMAIL_TO.trim()], subject: title, text }),
     })]);
   } else if (env.EMAIL && env.ALERT_EMAIL_FROM && env.ALERT_EMAIL_TO) {
     channels.push(['email', (text, title = subject) => env.EMAIL.send({
@@ -84,7 +91,17 @@ export async function testAlert(storage, request, channels) {
   try {
     await send(`PS5 Pro alert test. No restock detected by this test.\n${PLAYSTATION}`, 'PS5 Pro alert test');
     return { channel, status: 'accepted by provider' };
-  } catch {
+  } catch (error) {
+    if (error instanceof NotificationHttpError) {
+      return { channel, status: 'delivery failed', httpStatus: error.status };
+    }
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      return { channel, status: 'delivery failed', reason: 'request timed out' };
+    }
+    if (error?.name === 'TypeError') {
+      const reason = /headers?/i.test(error.message) ? 'invalid request headers' : 'request could not connect';
+      return { channel, status: 'delivery failed', reason };
+    }
     return { channel, status: 'delivery failed' };
   }
 }

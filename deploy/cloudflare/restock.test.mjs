@@ -139,3 +139,14 @@ test('a private test request tries only the selected channel once', async () => 
     title: 'PS5 Pro alert test', text: `PS5 Pro alert test. No restock detected by this test.\n${PLAYSTATION}`,
   }]);
 });
+
+test('reports the provider status without logging private request or response data', async t => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('Private details', { status: 403 }));
+  const channels = alertChannels({
+    RESEND_API_KEY: 'test-sending-key', RESEND_FROM: 'sender@example.com', ALERT_EMAIL_TO: 'reader@example.com',
+  });
+  const storage = { get: () => undefined, put: () => {} };
+  assert.deepEqual(await testAlert(storage, 'email:rejected', channels), {
+    channel: 'email', status: 'delivery failed', httpStatus: 403,
+  });
+});
